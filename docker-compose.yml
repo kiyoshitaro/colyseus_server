@@ -1,0 +1,51 @@
+version: "3"
+
+services:
+  colyseus-service:
+    container_name: colyseus-service
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - postgre
+      - redis
+    ports:
+        - 2567:2567
+  mongodb:
+    image: mongo:3.0
+    container_name: mongo
+    volumes:
+      - mongodb:/data/configdb
+    ports:
+      - 27017:27017
+    
+  postgre:
+    image: postgres
+    volumes:
+        - postgre:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: neko
+      POSTGRES_USER: kiyoshitaro
+      POSTGRES_PASSWORD: 111111
+    
+  redis:
+    image: redis:3.2-alpine
+    container_name: redis_db
+    command: redis-server --appendonly yes
+    ports:
+      - 6379:6379
+    volumes:
+      - redis:/data/
+    restart: always
+volumes:
+  mongodb:
+  redis:
+  postgre:
+
+
+    
+    
+  
+  

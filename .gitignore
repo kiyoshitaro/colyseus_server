@@ -1,0 +1,9 @@
+node_modules
+bundle.js
+.DS_Store
+package-lock.json
+.vscode
+**/.cache
+npm-debug.log
+lib
+*.js
