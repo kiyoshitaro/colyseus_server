@@ -25,10 +25,11 @@ import dotenv from 'dotenv';
 import { ChatRoom } from "./rooms/01-chat-room";
 import BattleRoom from "./rooms/BattleRoom";
 import { RoomType } from './types';
+// import { MongooseDriver } from "@colyseus/mongoose-driver"
 
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
-
+console.log(process.env.PORT);
 const app = express();
 app.use('/', serveIndex(path.join(__dirname, '..', "static"), { 'icons': true }))
 // app.use(express.static(path.join(__dirname, "..", "..", "client", "dist")));
@@ -40,6 +41,9 @@ const server = http.createServer(app);
 // http server instance to re-use for the WebSocket server. Useful when you'd like to use Express along with Colyseus
 const gameServer = new Server({
     transport: new WebSocketTransport({ server }),
+    // presence: new RedisPresence(),
+    // driver: new MongooseDriver(),
+
     // verifyClient: function (info, next) {
     //     return
     //     // validate 'info'

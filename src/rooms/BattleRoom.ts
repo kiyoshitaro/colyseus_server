@@ -1,64 +1,52 @@
 import { Room, Client } from "colyseus";
-import StateHandler from './StateHandler';
-import { Player } from '../entities/Player';
-import { IRoomOptions } from '../types';
-export default class BattleRoom extends Room<StateHandler> {
-    // Colyseus will invoke when creating the room instance
+import BattleStateHandler from './BattleStateHandler';
+import { IRoomOptions, IMessage, IAction, IPlayer } from '../types';
+export default class BattleRoom extends Room<BattleStateHandler> {
+    handleMessage = (message: IMessage) => {
+        this.broadcast(message.type, message);
+    };
+
+    // HANDLER game loop
+    onGameLoop = () => {
+        this.state.update();
+    }
+
     onCreate(options: IRoomOptions) {
-        // initialize empty room state
-        this.setState(new StateHandler());
 
-        // Called every time this room receives a "move" message
-        this.onMessage("move", (client, data) => {
-            const player = this.state.players.get(client.sessionId);
-            player.position.x += data.x;
-            player.position.y += data.y;
-            console.log(client.sessionId + " at, x: " + player.position.x, "y: " + player.position.y);
-        });
-        this.onMessage("*", (client, type, message) => {
-            //
-            // Triggers when any other type of message is sent,
-            // excluding "action", which has its own specific handler defined above.
-            //
-            console.log(client.sessionId, "sent", type, message);
-            this.broadcast("action-taken", "an action has been taken!");
-        });
+        this.setState(new BattleStateHandler(this.handleMessage));
 
-    }
+        // call update function from entities in gameloop
+        this.setSimulationInterval(() => this.onGameLoop());
 
-    // Rejecting the reconnection after a 20 second timeout
-    async onLeave(client: Client, consented: boolean) {
-        // flag client as inactive for other users
-        this.state.players.get(client.sessionId).connected = false;
-
-        try {
-            if (consented) {
-                throw new Error("consented leave");
+        this.onMessage('*', (client: Client, type: string | number, action: IAction) => {
+            const playerId = client.sessionId;
+            // Validate which type of message is accepted
+            switch (type) {
+                case 'pick':
+                case 'boost':
+                case 'attack':
+                    this.state.playerAddAction({
+                        playerId,
+                        ...action,
+                    });
+                    break;
+                default:
+                    break;
             }
-
-            // allow disconnected client to reconnect into this room until 20 seconds
-            await this.allowReconnection(client, 20);
-
-            // client returned! let's re-activate it.
-            this.state.players.get(client.sessionId).connected = true;
-
-        } catch (e) {
-
-            // 20 seconds expired. let's remove the client.
-            this.state.players.delete(client.sessionId);
-        }
+        });
     }
 
-    // Called every time a client joins
-    onJoin(client: Client, options: any) {
-        this.state.players.set(client.sessionId, new Player());
-
+    onJoin(client: Client, options: IPlayer) {
+        this.state.playerJoin(client.sessionId, options);
         if (this.state.players.size === 2) {
             // this.state.currentTurn = client.sessionId;
-            // this.setAutoMoveTimeout();
-            // lock this room for new users
             this.lock();
         }
     }
+
+    onLeave(client: Client) {
+        this.state.playerLeave(client.sessionId);
+    }
+
 
 }
