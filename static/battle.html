@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width" />
+
+    <style>
+        body {
+            font-family: Tahoma, Geneva, sans-serif;
+        }
+    </style>
+
+    <!-- colyseus.js client -->
+    <script type="text/javascript" src="https://unpkg.com/colyseus.js@^0.14.0/dist/colyseus.js"></script>
+
+    <style type="text/css">
+        .items {
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            padding-top: 24px;
+            box-sizing: border-box;
+            left: 0;
+            top: 0;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>
+        <a href="https://github.com/colyseus/colyseus-examples"><img
+                src="https://cdn.jsdelivr.net/gh/colyseus/colyseus@master/media/header.png" height="100"
+                alt="colyseus" /></a>
+    </h1>
+
+    <p>This example shows how to use custom data structures in your room's state.</p>
+
+    <strong>commands</strong><br>
+    <div id="messages"></div>
+
+    <button onclick="attack()">attack</button>
+    <br />
+    <script>
+        var host = window.document.location.host.replace(/:.*/, '');
+
+        var client = new Colyseus.Client(location.protocol.replace("http", "ws") + "//" + host + (location.port ? ':' + location.port : ''));
+        var room;
+
+        client.joinOrCreate("battle_room").then(room_instance => {
+            room = room_instance
+            var monsters = {};
+            var colors = ['red', 'green', 'yellow', 'blue', 'cyan', 'magenta'];
+            room.state.monsters.onAdd = function (monster, sessionId) {
+                var dom = document.createElement("div");
+                dom.id = monster.id;
+                dom.className = "item";
+                dom.style.left = "700px";
+                dom.style.top = room.state.monsters.size * 100 + 300 + "px";
+                dom.style.background = colors[Math.floor(Math.random() * colors.length)];
+                dom.innerText = "Monster " + monster.id + " : " + monster.lives;
+                monsters[monster.id] = dom;
+                document.body.appendChild(dom);
+            }
+            room.state.monsters.onChange = function (monster, sessionId) {
+                alert('change')
+            }
+
+            room.state.characters.onAdd = function (character, sessionId) {
+                var dom = document.createElement("button");
+                dom.className = "item";
+                dom.id = character.id;
+                dom.onclick = () => {
+                    room.send('play', { type: "pick_character", timestamp: Date.now(), playerId: sessionId, value: character.id })
+                };
+
+                dom.style.left = "100px";
+                dom.style.top = room.state.characters.size * 100 + 300 + "px";
+                dom.style.background = colors[Math.floor(Math.random() * colors.length)];
+                dom.innerText = "Character " + character.id;
+                document.body.appendChild(dom);
+            }
+
+            room.state.skills.onAdd = function (skill, sessionId) {
+                var dom = document.createElement("button");
+                dom.id = skill.id;
+                dom.onclick = () => {
+                    room.send('play', { type: "pick_skill", timestamp: Date.now(), playerId: sessionId, value: skill.id })
+                };
+
+                dom.className = "item";
+                dom.style.left = room.state.skills.size * 50 + 200 + "px";
+                dom.style.top = "150px";
+                dom.style.background = colors[Math.floor(Math.random() * colors.length)];
+                dom.innerText = "Skill ( - " + skill.dame + ")";
+                document.body.appendChild(dom);
+            }
+            room.state.skills.onChange = function (skill, sessionId) {
+                var dom = document.getElementsById(skill.id);
+                dom.innerText = "Skill ( - " + skill.dame + ")";
+            }
+
+            room.state.monsters.onRemove = function (monster, sessionId) {
+                console.log(monster.id + " is dead");
+                document.body.removeChild(monster[monster.id]);
+            }
+
+            room.onStateChange(function (state) {
+                // this signal is triggered on each patch
+                var dom = document.getElementsById(state.pickedMonster.id);
+                dom.innerText = "Monster " + state.pickedMonster.id + " : " + state.pickedMonster.lives;
+            });
+
+            // listen to patches coming from the server
+            room.onMessage("attack", function (message) {
+                var p = document.createElement("p");
+                p.innerText = "From " + message.from + " at " + message.timestamp + " : attacked " + message.params.monsterId + " (" + message.params.lives + ")";
+                document.querySelector("#messages").appendChild(p);
+                document.getElementsByClassName("item").disabled = room.state.isPlayerTurn;
+            });
+            room.onMessage("pick_skill", function (message) {
+                var p = document.createElement("p");
+                p.innerText = "From " + message.from + " at " + message.timestamp + " : choose skill " + message.params.skillId + " (-" + message.params.dame + ")";
+                document.querySelector("#messages").appendChild(p);
+            });
+            room.onMessage("pick_character", function (message) {
+                var p = document.createElement("p");
+                p.innerText = "From " + message.from + " at " + message.timestamp + " : choose character " + message.params.characterId;
+                document.querySelector("#messages").appendChild(p);
+            });
+            room.onMessage("hurt", function (message) {
+                var p = document.createElement("p");
+                p.innerText = "From " + message.from + " at " + message.timestamp + " : character " + message.params.characterId + "is attacked (" + message.params.lives + ")";
+                document.querySelector("#messages").appendChild(p);
+                document.getElementsByClassName("item").disabled = room.state.isPlayerTurn;
+            });
+
+        });
+
+        function attack() {
+            room.send('play', { type: "attack", timestamp: Date.now() })
+        }
+
+    </script>
+</body>
+
+</html>

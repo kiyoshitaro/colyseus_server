@@ -1,4 +1,4 @@
-export type ActionType = 'attack' | 'boost' | 'pick';
+export type ActionType = 'pick_character' | 'pick_skill' | 'attack';
 
 export interface IAction {
     type: ActionType;

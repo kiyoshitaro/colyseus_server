@@ -1,18 +1,16 @@
-import { Schema, type, SetSchema } from "@colyseus/schema";
-export class Character extends Schema {
+import { Schema, type } from "@colyseus/schema";
+export class Monster extends Schema {
+
     @type('string')
     public id: string;
 
     @type('number')
     public lives: number = 100;
 
-    //TODO add more properties of character
     constructor(id: string) {
-        //TODO init state of each character
         super();
         this.id = id
     }
-
     hurt(dame: number) {
         this.lives -= dame;
     }
@@ -22,5 +20,4 @@ export class Character extends Schema {
     isAlive() {
         return this.lives > 0;
     }
-
 }

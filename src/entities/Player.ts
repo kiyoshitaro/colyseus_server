@@ -5,13 +5,13 @@ export class Player extends Schema {
     playerName: string;
 
     @type('number')
-    public point: number;
+    point: number;
 
-    @type([Character])
-    public characters: MapSchema<Character> = new MapSchema<Character>();
+    // @type({ map: Character })
+    // characters = new MapSchema<Character>();
 
-    constructor(playerName: string) {
+    constructor() {
         super();
-        this.playerName = playerName;
+        // this.playerName = playerName;
     }
 }
